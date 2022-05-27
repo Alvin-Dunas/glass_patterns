@@ -1,108 +1,67 @@
 import turtle
 import math
 
+'''Star numbers are handled separately for now since their find method uses different arguments. I could make it use g.
+Would be slightly less optimized but still very fast, so maybe code clarity is more important than speed in this case.'''
 class Special_number:
-    def __init__(self, name, func, n_args, search_limit_func):
+    def __init__(self, name, get, find, draw):
+        '''Name is a string, get computes a number with given parameters,
+        find tries to find parameters which compute to a given number and draw draws a shape.'''
         self.name = name
-        self.func = func
-        self.n_args = n_args
-        self.search_limit_func = search_limit_func
-
-    def compute(self, *args):
-        return self.func(*args)
+        self.get = get
+        self.find = find
+        self.draw = draw
 
 
 ### Special numbers ###
-def triangle_number(n):
+def get_triangle_number(n):
     return n * (n + 1) / 2
 
 
-def triangle_number_search_limit(g):
-    return [int(- 1 / 2 + (2 * g + 1 / 4) ** (1 / 2)) + 1]
-
-
-def layered_polygon_number(c, l):
-    return 1 + c * l * (l - 1) / 2
-
-
-def layered_polygon_number_search_limit(g):
-    return [g - 1, int(1 / 2 + (2 * g - 7 / 4) ** (1 / 2)) + 1]
-
-
-def star_number(c, l):
-    return 1 + c * l * (l - 1)
-
-
-### Finding special numbers ###
-def naive_search(g):
-    findings =[]
-    for n in range(1000):
-        if triangle_number(n) == g:
-            findings.append(['tri', n])
-
-    for c in range(11):
-        for l in range(1000):
-            if layered_polygon_number(c, l) == g:
-                findings.append(['pol', c, l])
-            elif star_number(c, l) == g:
-                findings.append(['star', c, l])
-
+def find_triangle_numbers(g):
+    findings = []
+    n = (math.sqrt(1 + 8 * g) - 1) / 2
+    if int(n) == n:
+        findings.append(int(n))
     return findings
 
 
-# not working
-def search_for_special_numbers(g, number_class):
-    findings = []
-    max_args = number_class.search_limit_func(g)
-    args = [1 for i in range(number_class.n_args)]
-    arg_idx = len(args) - 1
-    while args[arg_idx] <= max_args[arg_idx]:
-        if number_class.compute(*args) == g:
-            findings.append([number_class.name, args])
-        args[arg_idx] += 1
-        while args[arg_idx] > max_args[arg_idx]:
-            args[arg_idx] = 1
-            arg_idx -= 1
-            if arg_idx < 0:
-                return findings
-        args[arg_idx] += 1
-        arg_idx = len(args) - 1
+def get_layered_polygon_number(c, l):
+    return 1 + c * l * (l - 1) / 2
 
 
-# Assumes that the number type is growing in each variable. Cycles as 1 1 1, 1 1 2, ...
-# and changes digit when f(1, 1, a) > g. Keeps going until f(b, 1, 1) > g. (But arbitrary number of variables.)
-# Has multiple problems. One is that pl(c, 1) = 1 for agg c, som we never get pol(c, 1) > g
-def find(n, number_class):
+def find_layered_polygon_numbers(g):
     findings = []
-    args = [1 for i in range(number_class.n_args)]
-    # Temporary solution of setting av maximum limit for first variable
-    while args[0] < 100:
-        arg_n = len(args) - 1
-        test_number = number_class.compute(*args)
-        while test_number < n:
-            args[-1] += 1
-            test_number = number_class.compute(*args)
-        if test_number == n:
-            findings.append([number_class.name, args])
-        print(args)
-        print(args[arg_n])
-        while args[arg_n] == 1:
-            print(arg_n)
-            arg_n -= 1
-            if arg_n <= 0:
-                return findings
-        args[arg_n] = 1
-        args[arg_n - 1] += 1
+    for l in range(2, math.floor((1 + math.sqrt(8 * g - 7)) / 2) + 1):
+        c = (2 * g - 2) / (l * (l - 1))
+        if c == int(c) and c > 2:
+            findings.append((int(c), l))
+    return findings
+
+
+def get_star_number(c, l):
+    return 1 + c * l * (l - 1)
+
+
+def find_star_numbers(layered_polygon_findings):
+    return [(tuple[0] // 2, tuple[1]) for tuple in layered_polygon_findings if tuple[0] % 2 == 0 and tuple[0] > 4]
+
+
+### Finding special numbers ###
+def find_special_numbers(g, special_number_classes):
+    findings_by_type = {num.name: num.find(g) for num in special_number_classes}
+    findings_by_type['Star'] = find_star_numbers(findings_by_type['Polygon'])
+    return findings_by_type
 
 
 ### Graphics ###
-def draw_triangle(t, x1, y1, x_len, y_len, v, n):
-    dot_size = min(x_len, y_len) / (4 * n - 4)
+def draw_triangle(t, x1, y1, diam, v, n):
+    dot_size = diam / (4 * n - 4)
     t.penup()
     for row in range(n):
         for col in range(row + 1):
-            x = (1 + (2 * col - row) / (n - 1)) * x_len / 2
-            y = y_len - row * y_len / (n - 1)
+            x = (1 + (2 * col - row) / (n - 1)) * diam / 2
+            y = diam - row * diam / (n - 1)
             t.goto(x1 + math.cos(v) * x - math.sin(v) * y,
                    y1 + math.sin(v) * x + math.cos(v) * y)
             t.dot(dot_size)
@@ -128,32 +87,69 @@ def draw_star(t, x1, y1, diam, c, l):
     draw_layered_polygon(t, x1, y1, diam, c, l)
     step_size = (diam / 2) * math.sqrt(2 - 2 * math.cos(2 * math.pi / c))
     for corner in range(c):
-        draw_triangle(t, (diam / 2) * math.cos(corner * 2 * math.pi / c), (diam / 2) * math.sin(corner * 2 * math.pi / c),
-                      step_size, step_size, math.pi * ((2 * corner - 1) / c - 1 / 2), l)
+        draw_triangle(t, (diam / 2) * math.cos(corner * 2 * math.pi / c),
+                      (diam / 2) * math.sin(corner * 2 * math.pi / c), step_size,
+                      math.pi * ((2 * corner - 1) / c - 1 / 2), l)
 
+
+### Creating special number classes ###
+tri = Special_number('Triangle', get_triangle_number, find_triangle_numbers, draw_triangle)
+pol = Special_number('Polygon', get_layered_polygon_number, find_layered_polygon_numbers, draw_layered_polygon)
+
+special_number_classes = [tri, pol]
+
+
+def user_chooses_type_and_args(findings):
+    chosen_type_name = input('\tWrite a name (ex: Triangle) to choose a shape to display or write back to choose a new number: ')
+    print('\n')
+    if chosen_type_name == 'back':
+        return False, None, None
+    else:
+        while chosen_type_name not in findings.keys():
+            chosen_type_name = input('\tThe shape you entered is not available. Please choose a shape from above by entering its name excluding "number": ')
+
+    if len(findings[chosen_type_name]) == 1:
+        choosen_idx = 0
+    else:
+        choosen_idx = int(input(f'\t\tYour choices are numbered from 0 (left) to {len(findings[chosen_type_name]) - 1} (right). Please enter a number: '))
+        print('\n')
+        while choosen_idx not in range(len(findings[chosen_type_name])):
+            choosen_idx = int(input(f'\t\tThe choice you entered is not available. Please reread the instructions above and try again: '))
+
+    args = findings[chosen_type_name][choosen_idx]
+
+    return True, chosen_type_name, args
 
 ### UI and displaying ###
 s = turtle.Screen()
 t = turtle.Turtle()
+t.ht()
 t.speed(0)
 
-#draw_triangle(t, 0, 0, 250, 250, 0, 15)
-#draw_layered_polygon(t, 0, 0, 400, 14, 8)
-draw_star(t, 0, 0, 400, 7, 4)
-turtle.done()
+while True:
 
-# UI
-#g = int(input('Enter number of glasses: '))
+    g = int(input('Enter number of glasses: '))
+    print('\n')
+    while g <= 1:
+        g = int(input('\tPlease enter a number larger than 1: '))
+        print('\n')
 
-'''
-tri = Special_number('tri', triangle_number, 1, triangle_number_search_limit)
-pol = Special_number('pol', layered_polygon_number, 2, layered_polygon_number_search_limit)
+    findings = find_special_numbers(g, special_number_classes)
 
-special_number_classes = [tri, pol]
+    print('\tFindings:\n')
+    for num in special_number_classes:
+        print(f'\t{num.name} numbers: {findings[num.name]}')
+    print(f'\tStar numbers: {findings["Star"]}\n')
 
-findings = []
-for snc in special_number_classes:
-    findings.append(find(g, snc))
-'''
+    viewing, chosen_type_name, args = user_chooses_type_and_args(findings)
 
-#print(naive_search(g))
+    while viewing:
+        for num in special_number_classes:
+            if chosen_type_name == num.name:
+                num.draw(t, 0, 0, 300, *args)
+        if chosen_type_name == 'Star':
+            draw_star(t, 0, 0, 400, *args)
+
+        viewing, chosen_type_name, args = user_chooses_type_and_args(findings)
+
+        t.clear()
