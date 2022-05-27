@@ -2,8 +2,6 @@ import turtle
 import math
 
 
-"""Find functions return arguments used for drawing functions. The draw triangle function has the rotation angle as an
-additional argument, which is used for drawing stars. Perhaps this argument shouldn't be displayed to the user though."""
 class Special_number:
     def __init__(self, name, get, find, draw):
         """Name is a string, get computes a number with given arguments,
