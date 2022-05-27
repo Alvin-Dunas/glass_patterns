@@ -1,12 +1,13 @@
 import turtle
 import math
 
-'''Star numbers are handled separately for now since their find method uses different arguments. I could make it use g.
-Would be slightly less optimized but still very fast, so maybe code clarity is more important than speed in this case.'''
+
+"""Find functions return arguments used for drawing functions. The draw triangle function has the rotation angle as an
+additional argument, which is used for drawing stars. Perhaps this argument shouldn't be displayed to the user though."""
 class Special_number:
     def __init__(self, name, get, find, draw):
-        '''Name is a string, get computes a number with given parameters,
-        find tries to find parameters which compute to a given number and draw draws a shape.'''
+        """Name is a string, get computes a number with given parameters,
+        find tries to find parameters which compute to a given number and draw draws a shape."""
         self.name = name
         self.get = get
         self.find = find
@@ -22,7 +23,7 @@ def find_triangle_numbers(g):
     findings = []
     n = (math.sqrt(1 + 8 * g) - 1) / 2
     if int(n) == n:
-        findings.append(int(n))
+        findings.append((0, int(n)))
     return findings
 
 
@@ -43,15 +44,18 @@ def get_star_number(c, l):
     return 1 + c * l * (l - 1)
 
 
-def find_star_numbers(layered_polygon_findings):
-    return [(tuple[0] // 2, tuple[1]) for tuple in layered_polygon_findings if tuple[0] % 2 == 0 and tuple[0] > 4]
+def find_star_numbers(g):
+    findings = []
+    for l in range(2, math.floor((1 + math.sqrt(4 * g - 3)) / 2) + 1):
+        c = (g - 1) / (l * (l - 1))
+        if c == int(c) and c > 2:
+            findings.append((int(c), l))
+    return findings
 
 
 ### Finding special numbers ###
 def find_special_numbers(g, special_number_classes):
-    findings_by_type = {num.name: num.find(g) for num in special_number_classes}
-    findings_by_type['Star'] = find_star_numbers(findings_by_type['Polygon'])
-    return findings_by_type
+    return {num.name: num.find(g) for num in special_number_classes}
 
 
 ### Graphics ###
@@ -95,8 +99,9 @@ def draw_star(t, x1, y1, diam, c, l):
 ### Creating special number classes ###
 tri = Special_number('Triangle', get_triangle_number, find_triangle_numbers, draw_triangle)
 pol = Special_number('Polygon', get_layered_polygon_number, find_layered_polygon_numbers, draw_layered_polygon)
+star = Special_number('Star', get_star_number, find_star_numbers, draw_star)
 
-special_number_classes = [tri, pol]
+special_number_classes = [tri, pol, star]
 
 
 def user_chooses_type_and_args(findings):
@@ -120,6 +125,7 @@ def user_chooses_type_and_args(findings):
 
     return True, chosen_type_name, args
 
+
 ### UI and displaying ###
 s = turtle.Screen()
 t = turtle.Turtle()
@@ -139,7 +145,6 @@ while True:
     print('\tFindings:\n')
     for num in special_number_classes:
         print(f'\t{num.name} numbers: {findings[num.name]}')
-    print(f'\tStar numbers: {findings["Star"]}\n')
 
     viewing, chosen_type_name, args = user_chooses_type_and_args(findings)
 
@@ -147,8 +152,6 @@ while True:
         for num in special_number_classes:
             if chosen_type_name == num.name:
                 num.draw(t, 0, 0, 300, *args)
-        if chosen_type_name == 'Star':
-            draw_star(t, 0, 0, 400, *args)
 
         viewing, chosen_type_name, args = user_chooses_type_and_args(findings)
 
