@@ -6,60 +6,61 @@ import math
 additional argument, which is used for drawing stars. Perhaps this argument shouldn't be displayed to the user though."""
 class Special_number:
     def __init__(self, name, get, find, draw):
-        """Name is a string, get computes a number with given parameters,
-        find tries to find parameters which compute to a given number and draw draws a shape."""
+        """Name is a string, get computes a number with given arguments,
+        find tries to find arguments which compute to a given number and draw draws a shape."""
         self.name = name
         self.get = get
         self.find = find
         self.draw = draw
 
 
-### Special numbers ###
+"""Get and find functions for each special number type. Get computes a number with given arguments,
+find tries to find arguments which compute to a given number, and returns a list of all such argument tuples."""
 def get_triangle_number(n):
     return n * (n + 1) / 2
 
 
 def find_triangle_numbers(g):
     findings = []
-    n = (math.sqrt(1 + 8 * g) - 1) / 2
-    if int(n) == n:
-        findings.append((0, int(n)))
+    n = (math.sqrt(1 + 8 * g) - 1) / 2  # the exact argument...
+    if int(n) == n:  # ...but we're only interested in integers
+        findings.append((0, int(n)))  # currently returns a tuple with the angle which is used in the drawing function
     return findings
 
 
-def get_layered_polygon_number(c, l):
+def get_layered_polygon_number(c, l):  # c stands for corners and l stands for layers
     return 1 + c * l * (l - 1) / 2
 
 
 def find_layered_polygon_numbers(g):
     findings = []
-    for l in range(2, math.floor((1 + math.sqrt(8 * g - 7)) / 2) + 1):
+    for l in range(2, math.floor((1 + math.sqrt(8 * g - 7)) / 2) + 1):  # only checks for l such that c >= 1
         c = (2 * g - 2) / (l * (l - 1))
-        if c == int(c) and c > 2:
+        if c == int(c) and c > 2:  # we decide to only look for polygons with more than two corners
             findings.append((int(c), l))
     return findings
 
 
-def get_star_number(c, l):
+def get_star_number(c, l):  # c stands for corners and l stands for layers
     return 1 + c * l * (l - 1)
 
 
 def find_star_numbers(g):
     findings = []
-    for l in range(2, math.floor((1 + math.sqrt(4 * g - 3)) / 2) + 1):
+    for l in range(2, math.floor((1 + math.sqrt(4 * g - 3)) / 2) + 1):  # only checks for l such that c >= 1
         c = (g - 1) / (l * (l - 1))
-        if c == int(c) and c > 2:
+        if c == int(c) and c > 2:  # we decide to only look for stars with more than two corners
             findings.append((int(c), l))
     return findings
 
 
-### Finding special numbers ###
 def find_special_numbers(g, special_number_classes):
+    """Returns a dictionary containing the findings for each number type in special_number_classes."""
     return {num.name: num.find(g) for num in special_number_classes}
 
 
 ### Graphics ###
-def draw_triangle(t, x1, y1, diam, v, n):
+def draw_triangle(t, x1, y1, diam, v, n):  # v is the rotation angle, which is used when drawing stars
     dot_size = diam / (4 * n - 4)
     t.penup()
     for row in range(n):
@@ -105,6 +106,9 @@ special_number_classes = [tri, pol, star]
 
 
 def user_chooses_type_and_args(findings):
+    """After being presented with the findings, the user chooses which to display by choosing the number type and
+     the arguments. The function returns (bool, str, tuple) that tells if the user wants to keep viewing the results and
+     the type and arguments to draw from."""
     chosen_type_name = input('\tWrite a name (ex: Triangle) to choose a shape to display or write back to choose a new number: ')
     print('\n')
     if chosen_type_name == 'back':
